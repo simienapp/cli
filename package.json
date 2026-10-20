@@ -1,0 +1,30 @@
+{
+  "name": "simien",
+  "version": "0.0.1",
+  "description": "Simien: Postgres + Zega backends with a Convex-style dev loop",
+  "type": "module",
+  "bin": {
+    "simien": "src/simien.ts"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/simienapp/cli.git"
+  },
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "build:schema": "cargo build --release --manifest-path crates/simien-schema/Cargo.toml"
+  },
+  "engines": {
+    "bun": ">=1.3"
+  },
+  "dependencies": {
+    "commander": "15.0.0",
+    "postgres": "3.4.9"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.3",
+    "typescript": "7.0.2"
+  }
+}
