@@ -5,6 +5,7 @@ import { basename, join, resolve } from 'node:path'
 
 import * as stdio from '@zegadb/stdio'
 
+import { writeSchemaTypes } from '../generated'
 import { result, SimienError, type Globals } from '../output'
 import { CONFIG, type Config } from '../project'
 
@@ -34,6 +35,7 @@ export async function init(globals: Globals, options: { name?: string; port?: st
   mkdirSync(join(root, 'simien'), { recursive: true })
   const schema = join(root, 'simien', 'schema.ts')
   if (!existsSync(schema) || options.force) writeFileSync(schema, STARTER)
+  writeSchemaTypes({ generatedDir: join(root, 'simien', '_generated') })
   const ignore = join(root, '.gitignore')
   const ignored = existsSync(ignore) ? readFileSync(ignore, 'utf8') : ''
   if (!ignored.split('\n').includes('.simien')) appendFileSync(ignore, `${ignored && !ignored.endsWith('\n') ? '\n' : ''}.simien\n`)
