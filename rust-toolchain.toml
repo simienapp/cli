@@ -1,0 +1,5 @@
+# One Rust for every crate here. tsrs (crates/simien-check) needs 1.99.1.
+[toolchain]
+channel = "1.99.1"
+profile = "minimal"
+components = ["clippy", "rustfmt"]
