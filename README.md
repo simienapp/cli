@@ -18,7 +18,7 @@ simien dev --once  # sync once and exit (CI, agents)
 
 `simien/_generated/schema.d.ts` gives `schema.ts`'s `@simien/client/schema` import its types, so a fresh project checks clean and mistakes in the schema language are type errors.
 
-tsrs isn't on crates.io yet: `crates/simien-check` pins it to a git commit and builds with its own Rust toolchain (1.99.1, `rust-toolchain.toml` there). `bun run build:check` builds it.
+tsrs isn't on crates.io yet: `crates/simien-check` pins it to a git commit. The repo's crates are one Cargo workspace on Rust 1.99.1 (`rust-toolchain.toml`), which tsrs needs. `bun run build:check` builds it.
 
 ## Containers
 

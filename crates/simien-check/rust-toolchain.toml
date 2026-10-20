@@ -1,6 +1,0 @@
-# tsrs needs Rust 1.99.1; this crate builds on its own toolchain so nothing
-# else in the repo has to move.
-[toolchain]
-channel = "1.99.1"
-profile = "minimal"
-components = ["clippy", "rustfmt"]
