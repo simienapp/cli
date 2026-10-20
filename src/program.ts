@@ -4,6 +4,7 @@ import pkg from '../package.json'
 import { dev } from './core/dev'
 import { init } from './core/init'
 import * as container from './core/container'
+import { formatHelp, usageError } from './help'
 import { failure, type Globals } from './output'
 
 export const program = new Command()
@@ -15,6 +16,8 @@ program
   .option('--human', 'readable output for people')
   .option('--nopretty', 'compact JSON')
   .helpCommand(false)
+  .configureHelp({ formatHelp, showGlobalOptions: true })
+  .configureOutput({ outputError: (text, write) => write(usageError(text)) })
 
 const globals = (): Globals => program.opts<Globals>()
 
@@ -32,6 +35,7 @@ function action<A extends unknown[]>(run: (...args: A) => Promise<void>) {
 
 program
   .command('init')
+  .helpGroup('Project:')
   .description('start a project here: simien.json and simien/schema.ts')
   .option('--name <name>', 'project name (default: this directory)')
   .option('--port <port>', 'Postgres port; Zega uses the next one (default 54330)')
@@ -40,14 +44,18 @@ program
 
 program
   .command('dev')
+  .helpGroup('Project:')
   .description('run the local stack and keep the database, schema.ts and generated code in sync')
   .option('--once', 'sync once and exit (CI, agents)')
   .action(action(async (options: { once?: boolean }) => dev(globals(), options)))
 
 const containers = program
   .command('container')
+  .helpGroup('Local:')
   .description("the project's Postgres + pg_zega and Zega containers")
   .helpCommand(false)
+  // `simien container` alone lists its commands, like `simien` does.
+  .action(() => containers.help())
 
 containers.command('ls').description("every Simien project's containers on this machine").action(action(async () => container.ls(globals())))
 containers.command('status').description('are Postgres and Zega up and answering?').action(action(async () => container.status(globals())))

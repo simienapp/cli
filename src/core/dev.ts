@@ -9,6 +9,8 @@
 import { existsSync, mkdirSync, readFileSync, watch, writeFileSync } from 'node:fs'
 import { basename, dirname, join, relative } from 'node:path'
 
+import pkg from '../../package.json'
+import { showLogo, startBanner } from '../banner'
 import { apply, catalog, connect, installNotifier, onSchemaChange, ready, GuardError } from '../db'
 import { event, SimienError, type Globals } from '../output'
 import { findProject, type Project } from '../project'
@@ -126,6 +128,20 @@ export async function dev(globals: Globals, options: DevOptions): Promise<void> 
     if (timer) clearTimeout(timer)
     timer = setTimeout(sync, 100)
   })
-  event({ event: 'watching', file: schemaPath }, globals, () => `watching ${schemaPath} (Ctrl+C to stop)`)
+  event({ event: 'watching', file: schemaPath }, globals, () =>
+    showLogo(globals.human)
+      ? startBanner({
+          version: pkg.version,
+          tagline: 'Postgres + Zega, in sync with your schema',
+          color: true,
+          lines: [
+            { label: 'Postgres', value: `postgres://postgres@127.0.0.1:${project.config.ports.postgres}/postgres` },
+            { label: 'Zega', value: `http://127.0.0.1:${project.config.ports.zega}` },
+            { label: 'Schema', value: `${schemaPath} (watching; Ctrl+C to stop)` },
+            { label: 'Types', value: relative(project.root, join(project.generatedDir, 'dataModel.ts')) },
+          ],
+        })
+      : `watching ${schemaPath} (Ctrl+C to stop)`,
+  )
   await new Promise(() => {})
 }
