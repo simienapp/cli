@@ -1,36 +1,46 @@
-// Agent-first output, like the zega CLI: JSON on stdout by default, readable text with --human.
-// A failure is JSON on stderr (text with --human) and exit code 1.
+// Agent-first output, like the zega CLI: JSON on stdout by default. With --human, @zegadb/stdio
+// prints for people (problems on stderr, the rest on stdout, colour only on a terminal).
+// A failure is JSON on stderr (stdio's error with --human) and exit code 1.
+
+import * as stdio from '@zegadb/stdio'
 
 export interface Globals {
   human?: boolean
   nopretty?: boolean
 }
 
-export function result(value: unknown, globals: Globals, human: () => string): void {
-  if (globals.human) process.stdout.write(human() + '\n')
+/** A command's answer: JSON, or `human` printing it through stdio. */
+export function result(value: unknown, globals: Globals, human: () => void): void {
+  if (globals.human) human()
   else process.stdout.write(JSON.stringify(value, null, globals.nopretty ? undefined : 2) + '\n')
 }
 
 /** One line per event, for long-running commands (`simien dev`). */
-export function event(value: { event: string } & Record<string, unknown>, globals: Globals, human: () => string): void {
-  if (globals.human) process.stdout.write(human() + '\n')
+export function event(value: { event: string } & Record<string, unknown>, globals: Globals, human: () => void): void {
+  if (globals.human) human()
   else process.stdout.write(JSON.stringify(value) + '\n')
 }
 
 /** An error the user can act on: what happened, and where (file, line, column) when known. */
 export class SimienError extends Error {
-  constructor(message: string, readonly details: Record<string, unknown> = {}) {
+  constructor(
+    message: string,
+    readonly details: Record<string, unknown> = {},
+  ) {
     super(message)
   }
 }
 
-export function failure(error: unknown, globals: Globals): string {
+/** The details of a failure, printed under it with --human. */
+export function explain(action: string, message: string, details: Record<string, unknown>): void {
+  const where = typeof details.file === 'string' ? `${details.file}${details.line ? `:${details.line}:${details.column}` : ''}: ` : ''
+  stdio.error(action, where + message)
+  if (Array.isArray(details.blocked)) for (const line of details.blocked) process.stderr.write(`  - ${line}\n`)
+}
+
+export function failure(error: unknown, globals: Globals): void {
   const message = error instanceof Error ? error.message : String(error)
   const details = error instanceof SimienError ? error.details : {}
-  if (globals.human) {
-    const where = typeof details.file === 'string' ? `${details.file}${details.line ? `:${details.line}:${details.column}` : ''}: ` : ''
-    const blocked = Array.isArray(details.blocked) ? details.blocked.map((line) => `  - ${line}\n`).join('') : ''
-    return `error: ${where}${message}\n${blocked}`
-  }
-  return JSON.stringify({ ok: false, error: { message, ...details } }) + '\n'
+  if (globals.human) explain('error', message, details)
+  else process.stderr.write(JSON.stringify({ ok: false, error: { message, ...details } }) + '\n')
 }

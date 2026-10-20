@@ -4,27 +4,25 @@
 const INDENT = '  '
 const WIDTH = 44
 
-const LETTERS: Record<string, string[]> = {
-  S: ['▐██████', '▐██    ', '▐██████', '    ▐██', '▐██████'],
-  I: ['▐██', '▐██', '▐██', '▐██', '▐██'],
-  M: ['▐██  ▐██', '▐███▐███', '▐██▐█▐██', '▐██  ▐██', '▐██  ▐██'],
-  E: ['▐██████', '▐██    ', '▐████  ', '▐██    ', '▐██████'],
-  N: ['▐██  ▐██', '▐███ ▐██', '▐██▐█▐██', '▐██ ▐███', '▐██  ▐██'],
-}
-
-export const LOGO = [0, 1, 2, 3, 4].map((row) => [...'SIMIEN'].map((letter) => LETTERS[letter]![row]).join(' '))
+/** "simien" in the Ogre FIGlet font (figlet 1.8.0, `textSync('simien', { font: 'Ogre' })`). */
+export const LOGO = [
+  '     _           _',
+  ' ___(_)_ __ ___ (_) ___ _ __',
+  "/ __| | '_ ` _ \\| |/ _ \\ '_ \\",
+  '\\__ \\ | | | | | | |  __/ | | |',
+  '|___/_|_| |_| |_|_|\\___|_| |_|',
+]
 
 type Rgb = [number, number, number]
-/** Simien's two blues: the body, and the shaded left edge. */
+/** Simien blue. */
 const MAIN: Rgb = [94, 176, 255]
-const SHADE: Rgb = [34, 102, 204]
 
 const paint = (rgb: Rgb, text: string, color: boolean) => (color ? `\x1b[38;2;${rgb.join(';')}m${text}\x1b[39m` : text)
 const dim = (text: string, color: boolean) => (color ? `\x1b[2m${text}\x1b[22m` : text)
 const bold = (text: string, color: boolean) => (color ? `\x1b[1m${text}\x1b[22m` : text)
 
 export function logo(color: boolean): string {
-  return LOGO.map((row) => INDENT + row.replace(/█+|▐+/g, (run) => paint(run.startsWith('█') ? MAIN : SHADE, run, color))).join('\n')
+  return LOGO.map((row) => INDENT + paint(MAIN, row, color)).join('\n')
 }
 
 /** Whether to draw: --human, with a terminal on stdout. */
