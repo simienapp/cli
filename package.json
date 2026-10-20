@@ -4,7 +4,8 @@
   "description": "Simien: Postgres + Zega backends with a Convex-style dev loop",
   "type": "module",
   "bin": {
-    "simien": "src/simien.ts"
+    "simien": "src/simien.ts",
+    "s": "src/simien.ts"
   },
   "license": "Apache-2.0",
   "repository": {
@@ -21,6 +22,7 @@
   },
   "dependencies": {
     "commander": "15.0.0",
+    "kebele": "0.9.0",
     "postgres": "3.4.9"
   },
   "devDependencies": {

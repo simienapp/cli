@@ -4,6 +4,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test'
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { Docker, down } from 'kebele'
 import postgres from 'postgres'
 
 const CLI = join(import.meta.dir, '..', 'src', 'simien.ts')
@@ -44,8 +45,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await sql?.end({ timeout: 2 })
-  const compose = join(root, '.simien', 'compose.yml')
-  await Bun.spawn(['docker', 'compose', '-f', compose, 'down', '-v'], { cwd: root, env: { ...process.env, ZEGA_TOKEN: 'x', POSTGRES_PASSWORD: 'x' }, stdout: 'ignore', stderr: 'ignore' }).exited
+  await down(new Docker(), `simien-e2e-${process.pid}`, { volumes: true })
   rmSync(root, { recursive: true, force: true })
 }, 60_000)
 
@@ -143,3 +143,56 @@ test('a direct change in the database rewrites schema.ts while dev runs', async 
     await proc.exited
   }
 }, 60_000)
+
+test('container status, ls and logs describe the running stack', async () => {
+  const status = await simien('container', 'status')
+  expect(status.lines[0]).toMatchObject({ ok: true, postgres: { ready: true }, zega: { ready: true } })
+  expect(status.lines[0].containers.map((c: { service: string; health?: string; state: string }) => [c.service, c.health ?? c.state])).toEqual([
+    ['postgres', 'healthy'],
+    ['zega', 'running'],
+  ])
+  const ls = await simien('container', 'ls')
+  expect(ls.lines[0].projects.map((p: { project: string }) => p.project)).toContain(`e2e-${process.pid}`)
+  const logs = await simien('container', 'logs', 'postgres', '--tail', '5')
+  expect(logs.lines.length).toBeGreaterThan(0)
+  expect(logs.lines.every((l) => l.event === 'log' && l.service === 'postgres')).toBe(true)
+  expect((await simien('container', 'logs', 'redis')).error.message).toBe('no container redis; use postgres or zega')
+}, 60_000)
+
+test('another project on the same ports is told which project holds them', async () => {
+  const other = join(root, 'other')
+  mkdirSync(other, { recursive: true })
+  const run = async (...args: string[]) => {
+    const proc = Bun.spawn(['bun', CLI, '--nopretty', ...args], { cwd: other, stdout: 'pipe', stderr: 'pipe' })
+    const [stderr, code] = await Promise.all([new Response(proc.stderr).text(), proc.exited])
+    return { code, error: stderr.trim() ? JSON.parse(stderr).error : null }
+  }
+  expect((await run('init', '--name', `e2e-${process.pid}-b`, '--port', '54350')).code).toBe(0)
+  const clash = await run('container', 'start')
+  expect(clash.code).toBe(1)
+  expect(clash.error.message).toBe(`port 54351 for zega is already taken by container simien-e2e-${process.pid}-zega (stack simien-e2e-${process.pid})`)
+  await down(new Docker(), `simien-e2e-${process.pid}-b`, { volumes: true })
+}, 60_000)
+
+test('stop keeps the data, start brings it back, update keeps it too', async () => {
+  await sql.end({ timeout: 2 })
+  expect((await simien('container', 'stop')).lines[0].removed.sort()).toEqual([`simien-e2e-${process.pid}-postgres`, `simien-e2e-${process.pid}-zega`])
+  expect((await simien('container', 'status')).lines[0].ok).toBe(false)
+  expect((await simien('container', 'start')).lines.at(-1)).toMatchObject({ ok: true })
+  const update = await simien('container', 'update')
+  expect(update.lines.at(-1)).toMatchObject({ ok: true, replaced: [] })
+  sql = postgres(`postgres://postgres:${readFileSync(join(root, '.simien', 'postgres_password'), 'utf8').trim()}@127.0.0.1:54350/postgres`, { onnotice: () => {} })
+  expect((await sql`select name from users`).map((r) => r.name)).toEqual(['Nia'])
+}, 180_000)
+
+test('reset needs --yes, then deletes everything and starts empty', async () => {
+  const refused = await simien('container', 'reset')
+  expect(refused.code).toBe(1)
+  expect(refused.error.message).toContain('run again with --yes')
+  expect((await sql`select count(*)::int as n from users`)[0]!.n).toBe(1)
+  await sql.end({ timeout: 2 })
+  const reset = await simien('container', 'reset', '--yes')
+  expect(reset.lines.at(-1).deleted).toEqual([`simien-e2e-${process.pid}_postgres`, `simien-e2e-${process.pid}_zega`])
+  sql = postgres(`postgres://postgres:${readFileSync(join(root, '.simien', 'postgres_password'), 'utf8').trim()}@127.0.0.1:54350/postgres`, { onnotice: () => {} })
+  expect((await sql`select to_regclass('users') as t`)[0]!.t).toBeNull()
+}, 180_000)

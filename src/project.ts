@@ -18,7 +18,7 @@ export interface Project {
   schemaFile: string
   /** simien/_generated */
   generatedDir: string
-  /** .simien: local secrets and the compose file; never committed. */
+  /** .simien: local secrets; never committed. */
   stateDir: string
 }
 

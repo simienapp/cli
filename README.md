@@ -8,8 +8,24 @@ The development loop is modelled on Convex: you edit `simien/schema.ts`, and `si
 simien init        # simien.json + simien/schema.ts
 simien dev         # local stack, sync on every save, types in simien/_generated
 simien dev --once  # sync once and exit (CI, agents)
-simien status | start | stop
 ```
+
+`s` is the same command, for less typing: `s dev`, `s container ls`.
+
+## Containers
+
+Each project runs its own Postgres (with pg_zega) and Zega in Docker. [kebele](https://github.com/addiscorp/kebele) runs them over the Docker socket, and `simien dev` starts them for you.
+
+| command | does |
+|---|---|
+| `simien container ls` | every Simien project's containers on this machine |
+| `simien container status` | this project's Postgres and Zega: answering or not, health, ports |
+| `simien container start` / `stop` | start and wait until both answer / stop; data is kept |
+| `simien container logs [postgres\|zega] [--tail N] [-f]` | the containers' output |
+| `simien container update` | pull the images this simien pins and replace containers running older ones; data is kept |
+| `simien container reset --yes` | delete the project's data and start empty |
+
+If another project already holds the ports, `start` says which one. Pick other ports with `simien init --port`.
 
 ## The schema
 

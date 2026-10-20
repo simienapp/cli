@@ -6,6 +6,7 @@
       "name": "simien",
       "dependencies": {
         "commander": "15.0.0",
+        "kebele": "0.9.0",
         "postgres": "3.4.9",
       },
       "devDependencies": {
@@ -62,6 +63,8 @@
     "bun-types": ["bun-types@1.4.3", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-tinRJNGOmUN+tEAsn2y2e942n9JHRHR42iUYzDH75NmhJqVBokGSQkkfSFdNWwsANIdrK6ACH9t01M452YyTwg=="],
 
     "commander": ["commander@15.0.0", "", {}, "sha512-z67u4ZhzCL/Tydu1lJARtEZYWbWaN7oYLHbsuzocr6y4N6WZAagG3RQ4FW61V1/0+jImpj293XfrcYnd1qxtPg=="],
+
+    "kebele": ["kebele@0.9.0", "", { "dependencies": { "commander": "15.0.0" }, "bin": { "kebele": "src/kebele.ts" } }, "sha512-yBbFsxE+KKQR1aOeKsifgHulMlspCYWgg1nWgLVz/smMHEn9JHx49RI6b7sUQ9LXj3SEkkgYW/+eVRow6Na10g=="],
 
     "postgres": ["postgres@3.4.9", "", {}, "sha512-GD3qdB0x1z9xgFI6cdRD6xu2Sp2WCOEoe3mtnyB5Ee0XrrL5Pe+e4CCnJrRMnL1zYtRDZmQQVbvOttLnKDLnaw=="],
 

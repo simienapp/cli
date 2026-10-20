@@ -3,7 +3,7 @@ import { Command } from 'commander'
 import pkg from '../package.json'
 import { dev } from './core/dev'
 import { init } from './core/init'
-import { start, status, stop } from './core/stack'
+import * as container from './core/container'
 import { failure, type Globals } from './output'
 
 export const program = new Command()
@@ -44,6 +44,28 @@ program
   .option('--once', 'sync once and exit (CI, agents)')
   .action(action(async (options: { once?: boolean }) => dev(globals(), options)))
 
-program.command('start').description('start the local stack (Postgres + pg_zega, Zega)').action(action(async () => start(globals())))
-program.command('stop').description('stop the local stack; data is kept').action(action(async () => stop(globals())))
-program.command('status').description('is the local stack up?').action(action(async () => status(globals())))
+const containers = program
+  .command('container')
+  .description("the project's Postgres + pg_zega and Zega containers")
+  .helpCommand(false)
+
+containers.command('ls').description("every Simien project's containers on this machine").action(action(async () => container.ls(globals())))
+containers.command('status').description('are Postgres and Zega up and answering?').action(action(async () => container.status(globals())))
+containers.command('start').description('start Postgres and Zega and wait until both answer').action(action(async () => container.start(globals())))
+containers.command('stop').description('stop and remove the containers; data is kept').action(action(async () => container.stop(globals())))
+containers
+  .command('logs')
+  .description('the containers\' output')
+  .argument('[service]', 'postgres or zega (default: both)')
+  .option('--tail <lines>', 'only the last N lines')
+  .option('-f, --follow', 'keep printing new output (one service)')
+  .action(action(async (service: string | undefined, options: { tail?: string; follow?: boolean }) => container.logs(globals(), service, options)))
+containers
+  .command('update')
+  .description('pull the images this simien pins and replace containers on older ones; data is kept')
+  .action(action(async () => container.update(globals())))
+containers
+  .command('reset')
+  .description("delete the project's data and start empty")
+  .option('--yes', 'confirm: every row in Postgres and Zega is deleted')
+  .action(action(async (options: { yes?: boolean }) => container.reset(globals(), options)))
