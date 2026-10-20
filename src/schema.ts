@@ -1,9 +1,6 @@
 // The bridge to `simien-schema`, the Rust binary that owns every schema conversion.
 
-import { existsSync } from 'node:fs'
-import { createRequire } from 'node:module'
-import { join } from 'node:path'
-
+import { binary } from './binaries'
 import { SimienError } from './output'
 
 export type FieldType = 'int' | 'float' | 'bool' | 'string'
@@ -30,20 +27,8 @@ export interface Unmanaged { table: string; reason: string }
 export interface PlanResult { plan: Plan; current: Schema; schema: Schema; dataModel: string; unmanaged: Unmanaged[] }
 export interface PullResult { schema: Schema; schemaTs: string; dataModel: string; unmanaged: Unmanaged[] }
 
-/** The binary: the platform package a release ships, or the one built in this repo. */
-export function binary(): string {
-  const local = join(import.meta.dir, '..', '.target', 'release', 'simien-schema')
-  try {
-    const require = createRequire(import.meta.url)
-    return require.resolve(`@simien/schema-${process.platform}-${process.arch}/bin/simien-schema`)
-  } catch {
-    if (existsSync(local)) return local
-    throw new SimienError(`simien-schema isn't installed for ${process.platform}-${process.arch}`)
-  }
-}
-
 async function run<T>(command: 'plan' | 'pull', input: unknown, file?: string): Promise<T> {
-  const proc = Bun.spawn([binary(), command], { stdin: 'pipe', stdout: 'pipe', stderr: 'pipe' })
+  const proc = Bun.spawn([binary('simien-schema'), command], { stdin: 'pipe', stdout: 'pipe', stderr: 'pipe' })
   proc.stdin.write(JSON.stringify(input))
   await proc.stdin.end()
   const [out, err] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text(), proc.exited])

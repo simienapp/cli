@@ -12,6 +12,14 @@ simien dev --once  # sync once and exit (CI, agents)
 
 `s` is the same command, for less typing: `s dev`, `s container ls`.
 
+## Type-checking
+
+`simien check` type-checks the project with [tsrs](https://github.com/oxc-project/tsrs), the Rust port of the TypeScript 7 checker, inside the `simien-check` binary: no Node, no `tsc`. With a `tsconfig.json` in the project, that config applies; without one, Simien's defaults do (strict, ESNext, bundler resolution, the `webworker` library for WinterTC's globals). Errors come back as JSON with file, line, column and code, or as text with `--human`, and the exit code is 1 when there are any.
+
+`simien/_generated/schema.d.ts` gives `schema.ts`'s `@simien/client/schema` import its types, so a fresh project checks clean and mistakes in the schema language are type errors.
+
+tsrs isn't on crates.io yet: `crates/simien-check` pins it to a git commit and builds with its own Rust toolchain (1.99.1, `rust-toolchain.toml` there). `bun run build:check` builds it.
+
 ## Containers
 
 Each project runs its own Postgres (with pg_zega) and Zega in Docker. [kebele](https://github.com/addiscorp/kebele) runs them over the Docker socket, and `simien dev` starts them for you.
@@ -68,5 +76,6 @@ JSON on stdout by default, one event per line from `simien dev`. Add `--human` f
 ```sh
 bun install
 bun run build:schema
+bun run build:check
 bun test
 ```

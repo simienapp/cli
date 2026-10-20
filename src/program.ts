@@ -3,6 +3,7 @@ import { Command } from 'commander'
 import pkg from '../package.json'
 import { dev } from './core/dev'
 import { init } from './core/init'
+import { check } from './core/check'
 import * as container from './core/container'
 import { formatHelp, usageError } from './help'
 import { failure, type Globals } from './output'
@@ -48,6 +49,12 @@ program
   .description('run the local stack and keep the database, schema.ts and generated code in sync')
   .option('--once', 'sync once and exit (CI, agents)')
   .action(action(async (options: { once?: boolean }) => dev(globals(), options)))
+
+program
+  .command('check')
+  .helpGroup('Project:')
+  .description('type-check the project with tsrs, the Rust port of the TypeScript 7 checker')
+  .action(action(async () => check(globals())))
 
 const containers = program
   .command('container')

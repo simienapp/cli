@@ -6,13 +6,14 @@
 //   then syncs like any other save.
 // - Anything that would break a table or orphan data stops with an error and changes nothing.
 
-import { existsSync, mkdirSync, readFileSync, watch, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, watch } from 'node:fs'
 import { basename, dirname, join, relative } from 'node:path'
 
 import * as stdio from '@zegadb/stdio'
 
 import pkg from '../../package.json'
 import { showLogo, startBanner } from '../banner'
+import { writeIfChanged, writeSchemaTypes } from '../generated'
 import { apply, catalog, connect, installNotifier, onSchemaChange, ready, GuardError } from '../db'
 import { event, explain, SimienError, type Globals } from '../output'
 import { findProject, type Project } from '../project'
@@ -21,13 +22,6 @@ import { start } from '../stack'
 
 export interface DevOptions {
   once?: boolean
-}
-
-function writeIfChanged(file: string, text: string): boolean {
-  if (existsSync(file) && readFileSync(file, 'utf8') === text) return false
-  mkdirSync(dirname(file), { recursive: true })
-  writeFileSync(file, text)
-  return true
 }
 
 export interface SyncOutcome {
@@ -42,6 +36,7 @@ export async function syncOnce(project: Project, sql: ReturnType<typeof connect>
   const text = readFileSync(project.schemaFile, 'utf8')
   const result = await plan(text, await catalog(sql), relative(project.root, project.schemaFile))
   if (result.plan.statements.length > 0) await apply(sql, result.plan)
+  writeSchemaTypes(project)
   const generated = writeIfChanged(join(project.generatedDir, 'dataModel.ts'), result.dataModel)
   return { changes: result.plan.changes, warnings: result.plan.warnings, generated }
 }
