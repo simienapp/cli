@@ -14,7 +14,7 @@
   "scripts": {
     "test": "bun test",
     "typecheck": "tsc --noEmit",
-    "build:schema": "cargo build --release --manifest-path crates/simien-schema/Cargo.toml"
+    "build:schema": "cargo build --release --manifest-path crates/simien-schema/Cargo.toml --target-dir .target"
   },
   "engines": {
     "bun": ">=1.3"
