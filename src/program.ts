@@ -27,7 +27,7 @@ function action<A extends unknown[]>(run: (...args: A) => Promise<void>) {
     try {
       await run(...args)
     } catch (error) {
-      process.stderr.write(failure(error, globals()))
+      failure(error, globals())
       process.exitCode = 1
     }
   }

@@ -2,6 +2,7 @@
 // default, in the zega CLI's shape: `simien` and `simien --help` describe the whole CLI, grouped;
 // `simien <command> --help` one command. With --human it's commander's text, under the mark.
 
+import * as stdio from '@zegadb/stdio'
 import { Help, type Command } from 'commander'
 
 import { logo, showLogo } from './banner'
@@ -55,7 +56,10 @@ export function usageError(message: string): string {
   // commander appends "(Did you mean container?)"; agents get it as its own field.
   const suggestion = text.match(/\(Did you mean (.+)\?\)/)?.[1]
   const plain = text.replace(/\s*\(Did you mean .+\?\)/, '')
-  return flag('--human')
-    ? `error: ${text}\nhint: simien --help --human\n`
-    : JSON.stringify({ ok: false, error: { code: 'usage', message: plain, ...(suggestion ? { suggestion } : {}), hint: 'simien --help' } }) + '\n'
+  if (flag('--human')) {
+    stdio.error('usage', text)
+    stdio.nextStep('see the commands', 'simien --help --human')
+    return ''
+  }
+  return JSON.stringify({ ok: false, error: { code: 'usage', message: plain, ...(suggestion ? { suggestion } : {}), hint: 'simien --help' } }) + '\n'
 }

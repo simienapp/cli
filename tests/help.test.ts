@@ -46,5 +46,5 @@ test('a mistyped command is a JSON usage error with the suggestion as a field', 
     ok: false,
     error: { code: 'usage', message: "unknown command 'contaner'", suggestion: 'container', hint: 'simien --help' },
   })
-  expect((await simien('--human', 'contaner')).stderr).toStartWith("error: unknown command 'contaner'")
+  expect((await simien('--human', 'contaner')).stderr).toStartWith("[usage] unknown command 'contaner'")
 })

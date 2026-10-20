@@ -21,6 +21,7 @@
     "bun": ">=1.3"
   },
   "dependencies": {
+    "@zegadb/stdio": "0.1.0",
     "commander": "15.0.0",
     "kebele": "0.9.0",
     "postgres": "3.4.9"

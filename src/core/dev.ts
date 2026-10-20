@@ -9,10 +9,12 @@
 import { existsSync, mkdirSync, readFileSync, watch, writeFileSync } from 'node:fs'
 import { basename, dirname, join, relative } from 'node:path'
 
+import * as stdio from '@zegadb/stdio'
+
 import pkg from '../../package.json'
 import { showLogo, startBanner } from '../banner'
 import { apply, catalog, connect, installNotifier, onSchemaChange, ready, GuardError } from '../db'
-import { event, SimienError, type Globals } from '../output'
+import { event, explain, SimienError, type Globals } from '../output'
 import { findProject, type Project } from '../project'
 import { plan, pull } from '../schema'
 import { start } from '../stack'
@@ -47,17 +49,20 @@ export async function syncOnce(project: Project, sql: ReturnType<typeof connect>
 export async function dev(globals: Globals, options: DevOptions): Promise<void> {
   const project = findProject()
   const schemaPath = relative(project.root, project.schemaFile)
-  event({ event: 'starting', postgres: project.config.ports.postgres, zega: project.config.ports.zega }, globals, () => 'starting the local stack (Postgres + pg_zega, Zega)…')
+  event({ event: 'starting', postgres: project.config.ports.postgres, zega: project.config.ports.zega }, globals, () => stdio.log('start', 'Postgres + pg_zega and Zega…'))
   await start(project)
   await ready(project)
   const sql = connect(project)
 
   const report = (outcome: SyncOutcome) => {
-    for (const warning of outcome.warnings) event({ event: 'warning', message: warning }, globals, () => `warning: ${warning}`)
+    for (const warning of outcome.warnings) event({ event: 'warning', message: warning }, globals, () => stdio.warn('sync', warning))
     if (outcome.changes.length > 0) {
-      event({ event: 'synced', changes: outcome.changes }, globals, () => `synced: ${outcome.changes.join('; ')}`)
+      event({ event: 'synced', changes: outcome.changes }, globals, () => {
+        stdio.success('synced')
+        for (const change of outcome.changes) stdio.detail(change)
+      })
     } else {
-      event({ event: 'unchanged' }, globals, () => 'database matches schema.ts')
+      event({ event: 'unchanged' }, globals, () => stdio.status('sync', 'database matches schema.ts', true))
     }
   }
 
@@ -74,11 +79,7 @@ export async function dev(globals: Globals, options: DevOptions): Promise<void> 
     const message = error instanceof Error ? error.message : String(error)
     const details = error instanceof SimienError ? error.details : {}
     const kind = error instanceof GuardError ? 'blocked' : 'error'
-    event({ event: kind, message, ...details }, globals, () => {
-      const where = typeof details.line === 'number' ? `${schemaPath}:${details.line}:${details.column}: ` : ''
-      const blocked = Array.isArray(details.blocked) ? details.blocked.map((line) => `\n  - ${line}`).join('') : ''
-      return `${kind === 'blocked' ? 'blocked' : 'error'}: ${where}${message}${blocked}`
-    })
+    event({ event: kind, message, ...details }, globals, () => explain(kind, message, typeof details.line === 'number' ? { file: schemaPath, ...details } : details))
   }
 
   // One sync at a time; saves that land while one runs collapse into a single follow-up.
@@ -108,9 +109,9 @@ export async function dev(globals: Globals, options: DevOptions): Promise<void> 
       const pulled = await pull(current)
       writeIfChanged(project.schemaFile, pulled.schemaTs)
       writeIfChanged(join(project.generatedDir, 'dataModel.ts'), pulled.dataModel)
-      event({ event: 'pulled', from: tag, file: schemaPath }, globals, () => `${schemaPath} rewritten from a database change (${tag})`)
+      event({ event: 'pulled', from: tag, file: schemaPath }, globals, () => stdio.log('pull', `${schemaPath} rewritten from a database change (${tag})`))
       for (const table of pulled.unmanaged) {
-        event({ event: 'warning', message: `${table.table} isn't a Simien table: ${table.reason}` }, globals, () => `warning: ${table.table} isn't a Simien table: ${table.reason}`)
+        event({ event: 'warning', message: `${table.table} isn't a Simien table: ${table.reason}` }, globals, () => stdio.warn(table.table, `isn't a Simien table: ${table.reason}`))
       }
     } catch (error) {
       fail(error)
@@ -130,7 +131,7 @@ export async function dev(globals: Globals, options: DevOptions): Promise<void> 
   })
   event({ event: 'watching', file: schemaPath }, globals, () =>
     showLogo(globals.human)
-      ? startBanner({
+      ? process.stdout.write(startBanner({
           version: pkg.version,
           tagline: 'Postgres + Zega, in sync with your schema',
           color: true,
@@ -140,8 +141,8 @@ export async function dev(globals: Globals, options: DevOptions): Promise<void> 
             { label: 'Schema', value: `${schemaPath} (watching; Ctrl+C to stop)` },
             { label: 'Types', value: relative(project.root, join(project.generatedDir, 'dataModel.ts')) },
           ],
-        })
-      : `watching ${schemaPath} (Ctrl+C to stop)`,
+        }) + '\n')
+      : stdio.log('watch', `${schemaPath} (Ctrl+C to stop)`),
   )
   await new Promise(() => {})
 }

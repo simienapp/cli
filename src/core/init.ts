@@ -3,6 +3,8 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { basename, join, resolve } from 'node:path'
 
+import * as stdio from '@zegadb/stdio'
+
 import { result, SimienError, type Globals } from '../output'
 import { CONFIG, type Config } from '../project'
 
@@ -35,6 +37,10 @@ export async function init(globals: Globals, options: { name?: string; port?: st
   const ignore = join(root, '.gitignore')
   const ignored = existsSync(ignore) ? readFileSync(ignore, 'utf8') : ''
   if (!ignored.split('\n').includes('.simien')) appendFileSync(ignore, `${ignored && !ignored.endsWith('\n') ? '\n' : ''}.simien\n`)
-  result({ ok: true, name, config: CONFIG, schema: 'simien/schema.ts', ports: config.ports }, globals, () =>
-    `created ${CONFIG} and simien/schema.ts (${name}; Postgres :${config.ports.postgres}, Zega :${config.ports.zega})\nnext: simien dev`)
+  result({ ok: true, name, config: CONFIG, schema: 'simien/schema.ts', ports: config.ports }, globals, () => {
+    stdio.success(`created ${CONFIG} and simien/schema.ts for ${name}`)
+    stdio.info('Postgres', `:${config.ports.postgres}`)
+    stdio.info('Zega', `:${config.ports.zega}`)
+    stdio.nextStep('run it', 'simien dev')
+  })
 }
