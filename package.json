@@ -1,6 +1,5 @@
 {
   "name": "simien",
-  "license": "Apache-2.0",
   "version": "0.0.1",
   "description": "Simien: Postgres + Zega backends with a Convex-style dev loop",
   "type": "module",
